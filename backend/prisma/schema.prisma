@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  STAFF
+}
+
+enum WorkshopStatus {
+  SCHEDULED
+  CANCELLED
+  COMPLETED
+}
+
+enum RegistrationStatus {
+  ACTIVE
+  CANCELLED
+}
+
+enum RegistrationAction {
+  REGISTERED
+  CANCELLED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         UserRole
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  createdBy    String
+  updatedBy    String
+}
+
+model Location {
+  id       String  @id @default(uuid())
+  name     String
+  address  String?
+  isActive Boolean @default(true)
+
+  workshops Workshop[]
+}
+
+model Workshop {
+  id          String  @id @default(uuid())
+  code        String  @unique
+  title       String
+  description String?
+  instructor  String
+
+  locationId String
+
+  startsAt DateTime
+  endsAt   DateTime
+  capacity Int
+
+  status WorkshopStatus @default(SCHEDULED)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String
+  updatedBy String
+
+  location      Location       @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  registrations Registration[]
+
+  @@index([startsAt])
+  @@index([status, startsAt])
+  @@index([locationId, startsAt])
+}
+
+model Attendee {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  registrations Registration[]
+}
+
+model Registration {
+  id         String             @id @default(uuid())
+  workshopId String
+  attendeeId String
+  status     RegistrationStatus @default(ACTIVE)
+
+  registeredBy String
+  registeredAt DateTime @default(now())
+
+  cancelledBy String?
+  cancelledAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workshop Workshop @relation(fields: [workshopId], references: [id], onDelete: Restrict)
+  attendee Attendee @relation(fields: [attendeeId], references: [id], onDelete: Restrict)
+
+  @@index([workshopId, status])
+  @@index([attendeeId])
+  @@index([registeredBy])
+  @@index([workshopId, registeredAt])
+}
